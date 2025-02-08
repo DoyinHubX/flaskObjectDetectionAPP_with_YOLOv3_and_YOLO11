@@ -1,0 +1,46 @@
+# Ignore Python bytecode files
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environment
+env/
+venv/
+ENV/
+.VENV/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and debug output
+*.log
+*.sqlite3
+
+# Ignore Flask specific settings and files
+instance/
+config.py
+*.db
+
+# Ignore models folder in the root directory
+/models/
+
+# Ignore specific files in the templates directory
+/templates/result2.html
+/templates/index2.html
+
+# Ignore app2.py file
+app2.py
+
+# Ignore IDE/editor configurations
+.vscode/
+.idea/
+
+# Ignore coverage and testing output
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Ignore build artifacts
+build/
+dist/
+*.egg-info/
