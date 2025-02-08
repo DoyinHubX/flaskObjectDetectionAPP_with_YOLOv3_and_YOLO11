@@ -20,39 +20,58 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# YOLO Model Configuration
-model = cv2.dnn.readNet('models/yolov3.weights', 'models/yolov3.cfg')
-layer_names = model.getLayerNames()
-unconnected_layers = model.getUnconnectedOutLayers()
-output_layers = [layer_names[i[0] - 1] if isinstance(i, np.ndarray) else layer_names[i - 1] 
-                 for i in unconnected_layers]
 
-with open('models/coco.names', 'r') as f:
-    classes = [line.strip() for line in f.readlines()]
+#Yolov3 Implementation
+#--------------------------------------------------------------------
+# # Load the YOLO model configuration and weights
+# model = cv2.dnn.readNet('models/yolov3.weights', 'models/yolov3.cfg')
+# # Get all the layer names from the YOLO model
+# layer_names = model.getLayerNames()
+# # Identify the output layers (layers with no connections going forward)
+# unconnected_layers = model.getUnconnectedOutLayers()
+# output_layers = [layer_names[i[0] - 1] if isinstance(i, np.ndarray) else layer_names[i - 1] 
+#                  for i in unconnected_layers]
+
+# # Load COCO class names from file
+# with open('models/coco.names', 'r') as f:
+#     classes = [line.strip() for line in f.readlines()]
+
+# def detect_objects(img):
+#     height, width = img.shape[:2]
+#     blob = cv2.dnn.blobFromImage(img, 1/255.0, (416, 416), swapRB=True, crop=False)
+#     model.setInput(blob)
+#     outputs = model.forward(output_layers)
+
+#     boxes, confidences, class_ids = [], [], []
+#     for output in outputs:
+#         for detection in output:
+#             scores = detection[5:]
+#             class_id = np.argmax(scores)
+#             confidence = scores[class_id]
+#             if confidence > 0.5:
+#                 box = detection[0:4] * np.array([width, height, width, height])
+#                 (center_x, center_y, w, h) = box.astype("int")
+#                 x = int(center_x - (w / 2))
+#                 y = int(center_y - (h / 2))
+#                 boxes.append([x, y, int(w), int(h)])
+#                 confidences.append(float(confidence))
+#                 class_ids.append(class_id)
+
+#     indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+#     return boxes, confidences, class_ids, indexes
+
+
+#Yolo11 Implementation
+#--------------------------------------------------------------------
+from ultralytics import YOLO
+
+# Load YOLOv8 model
+model = YOLO('models/yolo11n.pt')  # Ensure you have yolo11n.pt in models/
 
 def detect_objects(img):
-    height, width = img.shape[:2]
-    blob = cv2.dnn.blobFromImage(img, 1/255.0, (416, 416), swapRB=True, crop=False)
-    model.setInput(blob)
-    outputs = model.forward(output_layers)
+    results = model.predict(img)
+    return results[0].plot()  # Returns the annotated image directly
 
-    boxes, confidences, class_ids = [], [], []
-    for output in outputs:
-        for detection in output:
-            scores = detection[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            if confidence > 0.5:
-                box = detection[0:4] * np.array([width, height, width, height])
-                (center_x, center_y, w, h) = box.astype("int")
-                x = int(center_x - (w / 2))
-                y = int(center_y - (h / 2))
-                boxes.append([x, y, int(w), int(h)])
-                confidences.append(float(confidence))
-                class_ids.append(class_id)
-
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
-    return boxes, confidences, class_ids, indexes
 
 @app.route('/')
 def index():
@@ -81,22 +100,33 @@ def process_files():
             try:
                 # Process image
                 img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
-                boxes, confidences, class_ids, indexes = detect_objects(img)
+                
+                # ======== REPLACE THIS SECTION ========
+                # YOLOv3 Implementation
+                #---------------------------------------------------
+                # Old YOLOv3 detection and drawing code:
+                # boxes, confidences, class_ids, indexes = detect_objects(img)
+                # if len(indexes) > 0:
+                #     for i in indexes.flatten():
+                #         x, y, w, h = boxes[i]
+                #         label = f"{classes[class_ids[i]]}: {confidences[i]:.2f}"
+                #         color = [random.randint(0, 255) for _ in range(3)]
+                #         cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
+                #         cv2.putText(img, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-                # Draw detections
-                if len(indexes) > 0:
-                    for i in indexes.flatten():
-                        x, y, w, h = boxes[i]
-                        label = f"{classes[class_ids[i]]}: {confidences[i]:.2f}"
-                        color = [random.randint(0, 255) for _ in range(3)]
-                        cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
-                        cv2.putText(img, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 
-                                   0.5, color, 2)
+                # New YOLO11 Implementation
+                #---------------------------------------------------
+                # YOLO11 detection and auto-annotation
+                results = model.predict(img)
+                annotated_img = detect_objects(img)
+            
+                # ======== END OF REPLACEMENT ========
 
                 # Save processed image with unique name
                 filename = f"{process_id}_{secure_filename(file.filename)}"
                 save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                cv2.imwrite(save_path, img) #YOLOv3 Implementation
+                #cv2.imwrite(save_path, img) #YOLOv3 Implementation
+                cv2.imwrite(save_path, annotated_img) #YOLO11 Implementation
                 processed_files.append(filename)
 
             except Exception as e:
@@ -117,16 +147,22 @@ def process_files():
     # Handle multiple files as zip
     zip_filename = f"processed_images_{process_id}.zip"
     zip_buffer = BytesIO()
+    
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for filename in processed_files:
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             zip_file.write(file_path, filename)
     
     zip_buffer.seek(0)
-    return send_file(zip_buffer,
-                    mimetype='application/zip',
-                    as_attachment=True,
-                    download_name='processed_images.zip')
+    
+    response = send_file(zip_buffer,
+                        mimetype='application/zip',
+                        as_attachment=True,
+                        download_name=zip_filename)
+    
+    # Add custom header to identify zip response
+    response.headers['X-Content-Type'] = 'application/zip'
+    return response
 
 if __name__ == "__main__":
     app.run(debug=True)
