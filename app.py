@@ -16,6 +16,10 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'bmp', 'tiff'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 # YOLO Model Configuration
 model = cv2.dnn.readNet('models/yolov3.weights', 'models/yolov3.cfg')
 layer_names = model.getLayerNames()
@@ -25,10 +29,6 @@ output_layers = [layer_names[i[0] - 1] if isinstance(i, np.ndarray) else layer_n
 
 with open('models/coco.names', 'r') as f:
     classes = [line.strip() for line in f.readlines()]
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def detect_objects(img):
     height, width = img.shape[:2]
@@ -73,7 +73,9 @@ def process_files():
         flash('No files selected', 'error')
         return redirect(url_for('index'))
 
+    process_id = uuid.uuid4().hex  # Unique ID for this processing session
     processed_files = []
+
     for file in files:
         if file and allowed_file(file.filename):
             try:
@@ -91,10 +93,10 @@ def process_files():
                         cv2.putText(img, label, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 
                                    0.5, color, 2)
 
-                # Save processed image
-                filename = f"processed_{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+                # Save processed image with unique name
+                filename = f"{process_id}_{secure_filename(file.filename)}"
                 save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                cv2.imwrite(save_path, img)
+                cv2.imwrite(save_path, img) #YOLOv3 Implementation
                 processed_files.append(filename)
 
             except Exception as e:
@@ -109,9 +111,11 @@ def process_files():
     if len(processed_files) == 1:
         return render_template('result.html', 
                              image_url=url_for('serve_processed_image', 
-                             filename=processed_files[0]))
+                             filename=processed_files[0]),
+                             process_id=process_id)
 
     # Handle multiple files as zip
+    zip_filename = f"processed_images_{process_id}.zip"
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for filename in processed_files:
