@@ -5,6 +5,8 @@ import numpy as np
 import random
 import os
 import uuid
+import zipfile
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -108,6 +110,19 @@ def process_files():
         return render_template('result.html', 
                              image_url=url_for('serve_processed_image', 
                              filename=processed_files[0]))
+
+    # Handle multiple files as zip
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for filename in processed_files:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            zip_file.write(file_path, filename)
+    
+    zip_buffer.seek(0)
+    return send_file(zip_buffer,
+                    mimetype='application/zip',
+                    as_attachment=True,
+                    download_name='processed_images.zip')
 
 if __name__ == "__main__":
     app.run(debug=True)
