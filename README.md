@@ -1,4 +1,4 @@
-## Flask-Powered Object Detection: Integrating YOLOv3 and YOLO12 for Real-Time Analysis
+## Flask-Powered Object Detection: Integrating YOLOv3 and YOLOv12 for Real-Time Analysis
 
 **Computer vision** is revolutionizing industries, from autonomous driving to real-time surveillance and healthcare diagnostics. One of the most powerful techniques in this field is the **YOLO (You Only Look Once)** - a state-of-the-art computer vision framework, known for its speed and accuracy in detecting multiple objects in a single image.
 
