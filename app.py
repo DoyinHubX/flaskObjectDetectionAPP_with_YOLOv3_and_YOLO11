@@ -22,7 +22,7 @@ def allowed_file(filename):
 
 
 #Yolov3 Implementation
-#--------------------------------------------------------------------
+#--------------------------------------
 # # Load the YOLO model configuration and weights
 # model = cv2.dnn.readNet('models/yolov3.weights', 'models/yolov3.cfg')
 # # Get all the layer names from the YOLO model
@@ -62,7 +62,7 @@ def allowed_file(filename):
 
 
 #Yolo11 Implementation
-#--------------------------------------------------------------------
+#--------------------------------------
 from ultralytics import YOLO
 
 # Load YOLOv8 model
@@ -73,6 +73,8 @@ def detect_objects(img):
     return results[0].plot()  # Returns the annotated image directly
 
 
+# Routes
+#--------------------------------------
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -165,4 +167,4 @@ def process_files():
     return response
 
 if __name__ == "__main__":
-    app.run(debug=True)
+     app.run(debug=True, use_reloader=False)
