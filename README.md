@@ -41,4 +41,4 @@ The result is a functional Flask Application that not only serves a single YOLO-
 
 ## 📷 Screenshot  
 
-![Authentication Interface](static/assets/output.PNG)
+![Output](static/assets/output.PNG)
